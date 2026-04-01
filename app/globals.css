@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 241, 245, 249;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(var(--background-end-rgb))
+  )
+  rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+/* Estilo personalizado para el area de arrastre */
+.dropzone-active {
+  @apply border-blue-500 bg-blue-50;
+}
+
+/* Animación del escáner */
+@keyframes scan {
+  0% { top: 0; }
+  50% { top: calc(100% - 4px); }
+  100% { top: 0; }
+}
+
+.scanner-line {
+  animation: scan 2s linear infinite;
+}
+
+/* Texto seleccionable del resultado */
+.ocr-result-text {
+  user-select: text;
+  -webkit-user-select: text;
+}
