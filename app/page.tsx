@@ -12,6 +12,7 @@ export default function HomePage() {
   const [result, setResult] = useState<OcrResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [progressMessage, setProgressMessage] = useState('');
 
   const previewUrl = useMemo(() => {
     if (!selectedFile) return '';
@@ -32,9 +33,12 @@ export default function HomePage() {
 
     setIsProcessing(true);
     setError('');
+    setProgressMessage('Iniciando OCR...');
 
     try {
-      const ocrResult = await extractText(selectedFile);
+      const ocrResult = await extractText(selectedFile, {
+        onProgress: (message) => setProgressMessage(message),
+      });
       setResult(ocrResult);
 
       if (!ocrResult.text.trim()) {
@@ -45,6 +49,7 @@ export default function HomePage() {
       setError(message);
     } finally {
       setIsProcessing(false);
+      setProgressMessage('');
     }
   };
 
@@ -63,6 +68,10 @@ export default function HomePage() {
         <p className="max-w-3xl text-sm text-slate-600 md:text-base">
           Toma una foto de una hoja de cuaderno o adjunta una imagen para extraer el texto.
           Funciona con texto impreso y también con escritura a mano.
+        </p>
+
+        <p className="mt-2 text-xs text-slate-500">
+          Motor activo: {process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY ? 'Google Vision (con fallback a Tesseract)' : 'Tesseract local'}
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -106,7 +115,7 @@ export default function HomePage() {
             {isProcessing ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Extrayendo texto...
+                {progressMessage || 'Extrayendo texto...'}
               </>
             ) : (
               <>
