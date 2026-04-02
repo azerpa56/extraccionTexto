@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Languages, NotebookText, ScanText } from 'lucide-react';
 import CameraCapture from '@/components/CameraCapture';
 import FileUploader from '@/components/FileUploader';
@@ -13,6 +13,22 @@ export default function HomePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [progressMessage, setProgressMessage] = useState('');
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncOnlineStatus = () => setIsOnline(navigator.onLine);
+
+    syncOnlineStatus();
+    window.addEventListener('online', syncOnlineStatus);
+    window.addEventListener('offline', syncOnlineStatus);
+
+    return () => {
+      window.removeEventListener('online', syncOnlineStatus);
+      window.removeEventListener('offline', syncOnlineStatus);
+    };
+  }, []);
 
   const previewUrl = useMemo(() => {
     if (!selectedFile) return '';
@@ -73,6 +89,21 @@ export default function HomePage() {
         <p className="mt-2 text-xs text-slate-500">
           Motor activo: {process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY ? 'Google Vision (con fallback a Tesseract)' : 'Tesseract local'}
         </p>
+
+        <div className="mt-2">
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'
+            }`}
+          >
+            Estado de conexión: {isOnline ? 'Online' : 'Offline'}
+          </span>
+          {!isOnline ? (
+            <p className="mt-2 text-xs text-amber-700">
+              OCR local seguirá funcionando. La traducción intentará modo híbrido con fallback offline.
+            </p>
+          ) : null}
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">

@@ -1,0 +1,20 @@
+{
+  "name": "Lector OCR de Imágenes",
+  "short_name": "OCR Lector",
+  "description": "Extrae texto de imágenes y funciona con soporte offline",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "lang": "es",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
