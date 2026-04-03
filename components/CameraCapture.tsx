@@ -14,39 +14,99 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [error, setError] = useState<string>('');
 
+  const stopStream = (mediaStream: MediaStream | null) => {
+    if (!mediaStream) return;
+    mediaStream.getTracks().forEach((track) => track.stop());
+  };
+
+  const getCameraErrorMessage = (err: unknown) => {
+    if (!(err instanceof DOMException)) {
+      return err instanceof Error ? err.message : 'No se pudo acceder a la camara.';
+    }
+
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      return 'Permiso de camara denegado. Habilitalo en la configuracion del navegador.';
+    }
+
+    if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      return 'No se detecto una camara disponible en este dispositivo.';
+    }
+
+    if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      return 'La camara esta siendo usada por otra app. Cierra otras apps y reintenta.';
+    }
+
+    if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+      return 'No fue posible iniciar la camara trasera. Prueba reiniciar la camara.';
+    }
+
+    if (err.name === 'SecurityError') {
+      return 'La camara requiere un contexto seguro (HTTPS o localhost).';
+    }
+
+    return err.message || 'No se pudo acceder a la camara.';
+  };
+
   useEffect(() => {
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      stopStream(stream);
     };
   }, [stream]);
 
   const startCamera = async () => {
+    if (typeof window === 'undefined') return;
+
     try {
       setError('');
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      });
+
+      const supportsCamera =
+        typeof navigator !== 'undefined' &&
+        !!navigator.mediaDevices &&
+        typeof navigator.mediaDevices.getUserMedia === 'function';
+
+      if (!supportsCamera) {
+        setError('Este navegador no soporta acceso a camara. Usa Chrome, Edge o Safari actualizados.');
+        return;
+      }
+
+      if (!window.isSecureContext) {
+        setError('La camara solo funciona en HTTPS o en localhost.');
+        return;
+      }
+
+      stopStream(stream);
+
+      let mediaStream: MediaStream;
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+      } catch {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        await videoRef.current.play();
       }
 
       setStream(mediaStream);
       setIsCameraOn(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo acceder a la cámara';
-      setError(message);
+      setError(getCameraErrorMessage(err));
+      setIsCameraOn(false);
+      stopStream(stream);
     }
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
+    stopStream(stream);
+    setStream(null);
     setIsCameraOn(false);
   };
 
@@ -59,6 +119,11 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
 
     if (!context) return;
 
+    if (!video.videoWidth || !video.videoHeight) {
+      setError('La camara aun no esta lista. Espera un segundo e intenta de nuevo.');
+      return;
+    }
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -68,7 +133,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     );
 
     if (!blob) {
-      setError('No se pudo capturar la foto');
+      setError('No se pudo capturar la foto.');
       return;
     }
 
@@ -91,7 +156,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
 
       <div className="relative mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
         {isCameraOn ? (
-          <video ref={videoRef} autoPlay playsInline className="h-72 w-full object-cover" />
+          <video ref={videoRef} autoPlay playsInline muted className="h-72 w-full object-cover" />
         ) : (
           <div className="flex h-72 w-full items-center justify-center text-slate-500">
             Vista previa de cámara
